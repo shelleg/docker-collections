@@ -1,0 +1,14 @@
+version: '2'
+services:
+  jmx_exporter:
+    image: sscaling/jmx-prometheus-exporter
+    restart: always
+    ports:
+      - "5556:5556"
+    # volumes:
+    #   - "./jmx.yml:/opt/jmx_exporter/config.yml"
+    labels:
+      service.name: "jmx-exporter"
+      service.group: "monitoring"
+      service.project: "my_project"
+      service.environment: "production"

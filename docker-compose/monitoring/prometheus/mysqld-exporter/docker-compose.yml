@@ -1,0 +1,16 @@
+version: '2'
+services:
+  mysqld-exporter:
+    image: prom/mysqld-exporter
+    ports:
+      - "9104:9104"
+    command: ["-config.my-cnf=/.my.cnf", "-web.listen-address=:9104", "-collect.global_status=true"]
+    volumes:
+      - '/data/mysql.sock:/tmp/mysql.sock:ro'
+      - '.my.cnf:/.my.cnf:ro'
+    restart: always
+    labels:
+      service.name: "mysqld-exporter"
+      service.group: "monitoring"
+      service.project: "my_project"
+      service.environment: "production"

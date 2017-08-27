@@ -1,0 +1,60 @@
+global:
+
+# The directory from which notification templates are read.
+templates:
+- '/etc/alertmanager/templates/slack.tmpl'
+
+receivers:
+- name: 'slack'
+  slack_configs:
+    - send_resolved: true
+      api_url: 'https://hooks.slack.com/services/<BOGUS>/<BOGUS>/<TOKEN>'
+      title: '[{{ .Status  | toUpper }}] - {{ .CommonAnnotations.summary }}'
+      text: '{{ .CommonAnnotations.description }}'
+      title_link: 'http://swarm-lb-address:10000/alerts'
+      #title: '{{ template "slack.cf.title" . }}'
+      #text: '{{ template "slack.cf.text" . }}'
+
+- name: 'email'
+  email_configs:
+  - to: $GMAIL_ACCOUNT
+    from: $GMAIL_ACCOUNT
+    smarthost: smtp.gmail.com:587
+    auth_username: "$GMAIL_ACCOUNT"
+    auth_identity: "$GMAIL_ACCOUNT"
+    auth_password: "$GMAIL_AUTH_TOKEN"
+# The root route on which each incoming alert enters.
+route:
+  # The labels by which incoming alerts are grouped together. For example,
+  # multiple alerts coming in for cluster=A and alertname=LatencyHigh would
+  # be batched into a single group.
+  group_by: ['alertname']
+
+  # When a new group of alerts is created by an incoming alert, wait at
+  # least 'group_wait' to send the initial notification.
+  # This way ensures that you get multiple alerts for the same group that start
+  # firing shortly after another are batched together on the first
+  # notification.
+  group_wait: 10s
+
+  # When the first notification was sent, wait 'group_interval' to send a batch
+  # of new alerts that started firing for that group.
+  # group_interval: 5m
+
+  # If an alert has successfully been sent, wait 'repeat_interval' to
+  # resend them.
+  repeat_interval: 3h
+
+  # A default receiver
+  receiver: slack
+
+
+  # All the above attributes are inherited by all child routes and can
+  # overwritten on each.
+
+  #~ # The child route trees.
+  #~ routes:
+  #~ # This routes performs a regular expression match on alert labels to
+  #~ # catch alerts that are related to a list of services.
+  #~ - match_re:
+      #~ instance: ^(.*)$

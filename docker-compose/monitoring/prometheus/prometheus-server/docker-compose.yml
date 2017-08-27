@@ -1,0 +1,152 @@
+version: '3.2'
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+networks:
+  monitoring-front-tier:
+    driver: overlay
+  monitoring-back-tier:
+    driver: overlay
+
+services:
+  # main prometheus server
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '-config.file=/etc/prometheus/prometheus.yml'
+      - '-storage.local.path=/prometheus'
+      - '-alertmanager.url=http://alertmanager:9093'
+    expose:
+      - 9091
+    ports:
+      - 9091:9090
+#    ports:
+#      - target: 9090
+#        protocol: tcp
+#        mode: host
+    networks:
+      - monitoring-back-tier
+    labels:
+      service.name: "prometheus"
+      service.group: "monitoring"
+      service.environment: "production"
+    environment:
+      - SERVICE_9090_NAME=prometheus
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  # prometheus official node-exporter
+  node-exporter:
+    hostname: ne-'{{.Node.ID}}'
+    image: prom/node-exporter
+    ports:
+      - 9100:9100
+    networks:
+      - monitoring-back-tier
+    deploy:
+      mode: global
+    labels:
+      service.name: "node-exporter"
+      service.group: "monitoring"
+      service.project: "my_project"
+      service.environment: "production"
+
+  # prometheus alertmanager
+  alertmanager:
+    image: prom/alertmanager
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    networks:
+      - monitoring-back-tier
+    command:
+      - '-config.file=/etc/alertmanager/config.yml'
+      - '-storage.path=/alertmanager'
+    labels:
+      service.name: "alertmanager"
+      service.group: "monitoring"
+      service.environment: "production"
+    environment:
+      - SERVICE_9093_NAME=alertmanager
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  # docker metrics
+  cadvisor:
+    hostname: ca-'{{.Node.ID}}'
+    image: google/cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    expose:
+      - 8180
+    ports:
+      - 8180:8080
+    networks:
+      - monitoring-back-tier
+    labels:
+      service.name: "cadvisor"
+      service.group: "monitoring"
+      service.environment: "production"
+    deploy:
+      mode: global
+
+  # graphing
+  grafana:
+    image: grafana/grafana
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    depends_on:
+      - prometheus
+    expose:
+        - 3000
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    env_file:
+      - grafana/config
+    networks:
+      - monitoring-back-tier
+      - monitoring-front-tier
+    labels:
+      service.name: "grafana"
+      service.group: "monitoring"
+      service.environment: "production"
+    environment:
+      - SERVICE_3000_NAME=grafana
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  consul-exporter:
+    image: prom/consul-exporter
+    labels:
+      service.name: consul-exporter
+      service.group: monitoring
+      service.environment: production
+    ports:
+        - 9107:9107
+    command: -consul.server=consul:8500
+    environment:
+        SERVICE_9107_CHECK_TCP: 'True'
+        SERVICE_9107_CHECK_INTERVAL: 15s
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager

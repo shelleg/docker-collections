@@ -1,0 +1,15 @@
+version: '2'
+services:
+  elasticsearch_exporter:
+    image: justwatch/elasticsearch_exporter:1.0.1
+    command:
+     - '-es.uri=http://127.0.0.1:9200'
+    restart: always
+    ports:
+    - "9108:9108"
+    network_mode: "host"
+    labels:
+      service.name: "elasticsearch-exporter"
+      service.group: "monitoring"
+      service.project: "my_project"
+      service.environment: "production"

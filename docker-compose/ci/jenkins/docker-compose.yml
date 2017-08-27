@@ -1,0 +1,8 @@
+jenkins:
+  env_file: .env
+  image: jenkins:latest
+  ports:
+    - '8080:8080'
+  volumes:
+    - ${jenkins_homedir}/:/var/jenkins_home
+  restart: always
