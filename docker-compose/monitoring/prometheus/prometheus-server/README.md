@@ -1,7 +1,7 @@
 Prometheus, Alertmanager, node-exporter, CAdvisor & Grafana docker-compose stack
 ================================================================================
 
-What you get bu running `docker-compose up -d`
+What you get by running `docker-compose up -d`
 ==============================================
 
 * [Prometheus](https://github.com/prometheus/prometheus)
